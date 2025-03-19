@@ -6,7 +6,7 @@ Copyright (c) 2014 PHPBack
 http://www.phpback.org
 Released under the GNU General Public License WITHOUT ANY WARRANTY.
 See LICENSE.TXT for details.
-**********************************************************************/
+ **********************************************************************/
 
 if ( ! defined('BASEPATH')) exit('No direct script access allowed');
 
@@ -17,6 +17,7 @@ class Action extends CI_Controller{
         $this->load->helper('url');
         $this->load->model('get');
         $this->load->model('post');
+        $this->load->model('User_rule_model');
     }
     public function register(){
         require_once('public/recaptcha/autoload.php');
@@ -28,7 +29,7 @@ class Action extends CI_Controller{
         $pass2 = $this->input->post('password2', true);
         $name = $this->input->post('name', true);
 
-        if($this->get->getSetting('recaptchapublic') != ""){
+        if(false && $this->get->getSetting('recaptchapublic') != ""){
             $recaptcha = new \ReCaptcha\ReCaptcha($this->get->getSetting('recaptchaprivate'));
             $resp = $recaptcha->verify($_POST["g-recaptcha-response"],  $_SERVER['REMOTE_ADDR']);
 
@@ -177,6 +178,8 @@ class Action extends CI_Controller{
         $title = $this->input->post('title', true);
         $desc = $this->input->post('description', true);
         $catid = $this->input->post('category', true);
+        $boardId = $this->input->post('board', true);
+        $tagsId = $this->input->post('input_tags', true);
         if($catid == 0){
             $this->redirectpost(base_url() . "home/postidea/errorcat", array('title' => $title, 'desc' => $desc, 'catid' => $catid));
             return;
@@ -190,7 +193,7 @@ class Action extends CI_Controller{
             return;
         }
         if(@isset($_SESSION['phpback_userid'])) {
-            $this->post->add_idea($title, $desc, $_SESSION['phpback_userid'], $catid);
+            $this->post->add_idea($title, $desc, $_SESSION['phpback_userid'], $catid,$boardId);
             $admins = $this->get->get_admin_users();
             $adminMails = array_map(function (\stdClass $admin) {
                 return $admin->email;
@@ -198,6 +201,12 @@ class Action extends CI_Controller{
             $adminMails = implode(', ', $adminMails);
             $generalTitle = '' !== $this->get->getSetting('title') ? $this->get->getSetting('title') : 'PHPBack';
             $lastIdea = $this->get->getLastIdea();
+            if ($lastIdea->id) {
+                $this->uploadFiles($lastIdea->id);
+                if (count($tagsId) > 0) {
+                    $this->post->add_idea_tags($lastIdea->id, $tagsId);
+                }
+            }
             $message = sprintf($this->lang->language['log_new_idea_mail_content'], $generalTitle, $lastIdea->url);
             $fullTitle = $this->lang->language['log_new_idea'] . ' : ' . $generalTitle;
 
@@ -205,9 +214,44 @@ class Action extends CI_Controller{
         }
         header("Location: " . base_url() . "home/profile/" . $_SESSION['phpback_userid']);
     }
+    private function uploadFiles($ideaId) {
+        $config['upload_path'] = 'public/uploads/';
+        $config['allowed_types'] = 'gif|jpg|png|pdf|doc|docx';
+        $config['max_size'] = 2048;
+        $config['encrypt_name'] = true;
+
+        $this->load->library('upload', $config);
+
+        $files = $_FILES;
+        $count = count($_FILES['userfiles']['name']);
+
+        for ($i = 0; $i < $count; $i++) {
+            if (!empty($files['userfiles']['name'][$i])) {
+                $_FILES['userfile']['name'] = $files['userfiles']['name'][$i];
+                $_FILES['userfile']['type'] = $files['userfiles']['type'][$i];
+                $_FILES['userfile']['tmp_name'] = $files['userfiles']['tmp_name'][$i];
+                $_FILES['userfile']['error'] = $files['userfiles']['error'][$i];
+                $_FILES['userfile']['size'] = $files['userfiles']['size'][$i];
+
+                if ($this->upload->do_upload('userfile')) {
+                    $uploadData = $this->upload->data();
+                    $filename = $uploadData['file_name'];
+                    $this->post->save_attachment($ideaId, $filename);
+                } else {
+                    $_SESSION['error_message'] = $this->upload->display_errors();
+                    // log the error or handle as needed
+                }
+            }
+        }
+    }
 
     public function comment($idea_id){
         session_start();
+        if (!has_permission($_SESSION['phpback_userid'],$this->uri->segment(1),$this->uri->segment(2))) {
+            $_SESSION['error_message'] = 'You do not have permission to access do this action.';
+            header('Location: ' . base_url() . 'home/');
+            exit;
+        }
         $idea_id = (int) $idea_id;
         $content = $this->input->post('content', true);
         if(isset($_SESSION['phpback_userid'])) {
@@ -269,15 +313,70 @@ class Action extends CI_Controller{
             <body onload="close();">
             Redirecting...<br>
             <form name="redirectpost" method="post" action="' . $url .'">';
-            if ( !is_null($data) ) {
-                foreach ($data as $k => $v) {
-                    echo '<input type="hidden" name="' . $k . '" value="' . $v . '"> ';
-                }
+        if ( !is_null($data) ) {
+            foreach ($data as $k => $v) {
+                echo '<input type="hidden" name="' . $k . '" value="' . $v . '"> ';
             }
-            echo "</form>";
-            "</body>";
-            "</html>";
-            exit;
+        }
+        echo "</form>";
+        "</body>";
+        "</html>";
+        exit;
+    }
+
+    public function removetag($ideaId,$tagId) {
+        session_start();
+        if (!isset($_SESSION['phpback_userid'])) {
+            header('Location: ' . base_url() . 'home/login');
+            return;
+        }
+        // Ensure the user is the author of the idea
+        $idea = $this->get->getIdea($ideaId);
+        if ($idea->authorid != $_SESSION['phpback_userid']) {
+            header('Location: ' . base_url() . 'home/idea/' . $ideaId);
+            return;
+        }
+
+        $this->post->remove_idea_tag($ideaId, $tagId);
+
+        header('Location: ' . base_url() . 'home/idea/' . $ideaId);
+    }
+    public function addtag($ideaId,$tagId) {
+        session_start();
+
+        if (!isset($_SESSION['phpback_userid'])) {
+            header('Location: ' . base_url() . 'home/login');
+            return;
+        }
+
+        // Ensure the user is the author of the idea
+        $idea = $this->get->getIdea($ideaId);
+        if ($idea->authorid != $_SESSION['phpback_userid']) {
+            header('Location: ' . base_url() . 'home/idea/' . $ideaId);
+            return;
+        }
+
+        $this->post->add_idea_tags($ideaId, [$tagId]);
+
+        header('Location: ' . base_url() . 'home/idea/' . $ideaId);
+    }
+    public function changeBoard($ideaId,$boardId) {
+        session_start();
+
+        if (!isset($_SESSION['phpback_userid'])) {
+            header('Location: ' . base_url() . 'home/login');
+            return;
+        }
+        // Ensure the user is the author of the idea
+        $idea = $this->get->getIdea($ideaId);
+        if ($idea->authorid != $_SESSION['phpback_userid']) {
+            header('Location: ' . base_url() . 'home/idea/' . $ideaId);
+            return;
+        }
+
+        $this->post->change_board($ideaId, $boardId);
+
+        header('Location: ' . base_url() . 'home/idea/' . $ideaId);
     }
 }
 

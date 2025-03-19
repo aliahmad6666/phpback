@@ -6,7 +6,7 @@ Copyright (c) 2014 PHPBack
 http://www.phpback.org
 Released under the GNU General Public License WITHOUT ANY WARRANTY.
 See LICENSE.TXT for details.
-**********************************************************************/
+ **********************************************************************/
 
 if ( ! defined('BASEPATH')) exit('No direct script access allowed');
 
@@ -20,6 +20,7 @@ class Adminaction extends CI_Controller{
         $this->load->helper('url');
         $this->load->model('get');
         $this->load->model('post');
+        $this->load->model('User_rule_model');
 
         $this->lang->load('log', $this->get->getSetting('language'));
 
@@ -164,7 +165,7 @@ class Adminaction extends CI_Controller{
         header('Location: ' . base_url() . 'admin/system');
     }
 
-  public function upgrade() {
+    public function upgrade() {
         $this->start(3);
 
         $update = new AutoUpdate(__DIR__ . '/temp', __DIR__ . '/../../', 60);
@@ -188,13 +189,56 @@ class Adminaction extends CI_Controller{
         }
 
         header('Location: ' . base_url() . 'admin/system');
-  }
+    }
 
     private function start($level = 1){
         session_start();
+        if (!has_permission($_SESSION['phpback_userid'],$this->uri->segment(1),$this->uri->segment(2))) {
+            $_SESSION['error_message'] = 'You do not have permission to access do this action.';
+            header('Location: ' . base_url() . 'home/');
+            exit;
+        }
         if(!isset($_SESSION['phpback_isadmin']) || $_SESSION['phpback_isadmin'] < $level){
             header('Location: ' . base_url() . 'admin/');
             exit;
         }
     }
+
+    public function addtag(){
+        $this->start(3);
+        $name = $this->input->post('name', true);
+
+        if ($this->get->tag_exists($name)) {
+            $this->post->log("Tag '$name' already exists.", 'tag', $_SESSION['phpback_userid']);
+        } else {
+            $this->post->add_tag($name);
+            $this->post->log("Tag '$name' created.", 'tag', $_SESSION['phpback_userid']);
+        }
+
+        header('Location: ' . base_url() . 'admin/system');
+    }
+    public function deletetag($tag_id){
+        $this->start(3);
+        $id = $tag_id;
+
+        $this->post->delete_tag($id);
+        $this->post->log("Tag #$id deleted.", 'tag', $_SESSION['phpback_userid']);
+
+        header('Location: ' . base_url() . 'admin/system');
+    }
+    public function addBoard(){
+        $this->start(3);
+        $name = $this->input->post('name', true);
+        $description = $this->input->post('description', true);
+
+        if ($this->get->board_exists($name)) {
+            $this->post->log("Board '$name' already exists.", 'board', $_SESSION['phpback_userid']);
+        } else {
+            $this->post->add_board($name,$description);
+            $this->post->log("Board '$name' created.", 'board', $_SESSION['phpback_userid']);
+        }
+
+        header('Location: ' . base_url() . 'admin/system');
+    }
+
 }

@@ -9,20 +9,20 @@ Copyright (c) 2014 PHPBack
 http://www.phpback.org
 Released under the GNU General Public License WITHOUT ANY WARRANTY.
 See LICENSE.TXT for details.
-**********************************************************************/
+ **********************************************************************/
 
 if ( ! defined('BASEPATH')) exit('No direct script access allowed');
 
 class Post extends CI_Model
 {
-	public function __construct(){
-		parent::__construct();
-		$this->load->database();
+    public function __construct(){
+        parent::__construct();
+        $this->load->database();
 
         $this->lang->load('log', $this->getSetting('language'));
-	}
+    }
 
-	public function add_user($name, $email, $pass, $votes, $isadmin){
+    public function add_user($name, $email, $pass, $votes, $isadmin){
         $pass = $this->hashing->hash($pass);
         $votes = (int) $votes;
         $isadmin = (int) $isadmin;
@@ -33,47 +33,48 @@ class Post extends CI_Model
         if($sql->num_rows()) return false;
 
         if($isadmin){
-        	$data = array(
-	   			'name' => $name,
+            $data = array(
+                'name' => $name,
                 'email' => $email,
-	   			'pass' => $pass,
-	   			'votes' => $votes,
-	   			'isadmin' => $isadmin,
+                'pass' => $pass,
+                'votes' => $votes,
+                'isadmin' => $isadmin,
                 'banned' => '0'
-			);
+            );
         }
         else{
-        	$data = array(
-	   			'name' => $name,
+            $data = array(
+                'name' => $name,
                 'email' => $email,
-	   			'pass' => $pass,
-	   			'votes' => $votes,
-	   			'isadmin' => '0',
+                'pass' => $pass,
+                'votes' => $votes,
+                'isadmin' => '0',
                 'banned' => '0'
-			);
+            );
         }
 
-		$this->db->insert('users', $data);
-		$this->log($this->lang->language['log_user_registered'] . ": $name($email)", "general", 0);
+        $this->db->insert('users', $data);
+        $this->log($this->lang->language['log_user_registered'] . ": $name($email)", "general", 0);
         return true;
     }
 
-    public function add_idea($title, $content, $author_id, $category_id){
+    public function add_idea($title, $content, $author_id, $category_id,$boardId){
         $author_id = (int) $author_id;
         $category_id = (int) $category_id;
         if($author_id < 1 || $category_id < 1) return false;
         $data = array(
-	   			'title' => $title,
-	   			'content' => $content,
-	   			'authorid' => $author_id,
-	   			'date' => date("d/m/y H:i"),
-	   			'votes' => '0',
-	   			'comments' => '0',
-	   			'status' => 'new',
-	   			'categoryid' => $category_id,
-			);
+            'title' => $title,
+            'content' => $content,
+            'authorid' => $author_id,
+            'date' => date("d/m/y H:i"),
+            'votes' => '0',
+            'comments' => '0',
+            'status' => 'new',
+            'categoryid' => $category_id,
+            'board_id' => $boardId,
+        );
         $this->db->insert('ideas', $data);
-      	$this->log($this->lang->language['log_new_idea'] . ": $title", "user", $author_id);
+        $this->log($this->lang->language['log_new_idea'] . ": $title", "user", $author_id);
         return true;
     }
 
@@ -85,11 +86,11 @@ class Post extends CI_Model
         if($idea_id < 1 || $user_id < 1) return false;
 
         $data = array(
-	   			'content' => $comment,
-	   			'ideaid' => $idea_id,
-	   			'userid' => $user_id,
-	   			'date' => date("d/m/y H:i"),
-			);
+            'content' => $comment,
+            'ideaid' => $idea_id,
+            'userid' => $user_id,
+            'date' => date("d/m/y H:i"),
+        );
         $this->db->insert('comments', $data);
 
         $sql = $this->db->query("SELECT * FROM ideas WHERE id='$idea_id'");
@@ -117,10 +118,10 @@ class Post extends CI_Model
         if(!$sql->num_rows()){
             if($votes <= $USER->votes){
                 $data = array(
-		   			'ideaid' => $idea_id,
-		   			'userid' => $user_id,
-		   			'number' => $votes,
-				);
+                    'ideaid' => $idea_id,
+                    'userid' => $user_id,
+                    'number' => $votes,
+                );
                 $this->db->insert('votes', $data);
                 $this->update_by_id('users','votes', $USER->votes - $votes, $USER->id);
                 $this->update_by_id('ideas', 'votes', $idea->votes + $votes, $idea_id);
@@ -173,19 +174,19 @@ class Post extends CI_Model
     }
 
     public function flag($cid, $userid){
-    	$cid = (int) $cid;
-    	$userid = (int) $userid;
+        $cid = (int) $cid;
+        $userid = (int) $userid;
         if($cid < 1 || $userid < 1) return false;
         $sql = $this->db->query("SELECT * FROM flags WHERE userid='$userid' AND toflagid='$cid'");
         if($sql->num_rows() != 0) return false;
 
-    	$data = array(
-    		'id' => '',
-    		'toflagid' => $cid,
-    		'userid' => $userid,
-    		'date' => date("d/m/y H:i"),
-    		);
-    	$this->db->insert('flags', $data);
+        $data = array(
+            'id' => '',
+            'toflagid' => $cid,
+            'userid' => $userid,
+            'date' => date("d/m/y H:i"),
+        );
+        $this->db->insert('flags', $data);
         return true;
     }
 
@@ -221,6 +222,7 @@ class Post extends CI_Model
             $commentid = $comment->id;
             $this->db->query("DELETE FROM flags WHERE toflagid='$commentid'");
         }
+        $this->db->query("DELETE FROM idea_tags WHERE idea_id='$id'");
         $this->db->query("DELETE FROM comments WHERE ideaid='$id'");
         $sql = $this->db->query("SELECT * FROM votes where ideaid='$id'");
         $votes = $sql->result();
@@ -274,11 +276,11 @@ class Post extends CI_Model
     public function log($string, $to, $toid){
         $toid = (int) $toid;
         $data = array(
-        	'content' => $string,
-        	'date' => date("d/m/y H:i"),
-        	'type' => $to,
-        	'toid' => $toid,
-        	);
+            'content' => $string,
+            'date' => date("d/m/y H:i"),
+            'type' => $to,
+            'toid' => $toid,
+        );
         $this->db->insert('logs', $data);
     }
 
@@ -312,6 +314,39 @@ class Post extends CI_Model
 
     private function isAlphaNumeric($text) {
         return ctype_alnum($text);
+    }
+
+    public function add_tag($name) {
+        $this->db->insert('tags', ['name' => $name]);
+    }
+    public function add_board($name,$description) {
+        $this->db->insert('boards', ['name' => $name,'description' => $description]);
+    }
+    public function add_idea_tags($idea_id,$tag_ids) {
+        foreach ($tag_ids as $tag_id) {
+            $this->db->insert('idea_tags', [ 'idea_id' => $idea_id,'tag_id' => $tag_id]);
+        }
+    }
+    public function change_board($idea_id,$board_id) {
+        $query = "UPDATE ideas SET board_id=$board_id WHERE id=$idea_id";
+        $this->db->query($query);
+    }
+
+    public function delete_tag($id) {
+        $this->db->delete('idea_tags', ['tag_id' => $id]);
+        $this->db->delete('tags', ['id' => $id]);
+    }
+
+    public function remove_idea_tag($ideaId, $tagId) {
+        $this->db->delete('idea_tags', array('idea_id' => $ideaId, 'tag_id' => $tagId));
+    }
+    public function save_attachment($ideaId, $filename) {
+        $data = array(
+            'idea_id' => $ideaId,
+            'filename' => $filename,
+            'uploaded_at' => date('Y-m-d H:i:s')
+        );
+        $this->db->insert('attachments', $data);
     }
 }
 

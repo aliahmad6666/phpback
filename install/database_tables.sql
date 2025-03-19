@@ -52,6 +52,7 @@ CREATE TABLE IF NOT EXISTS `ideas` (
   `comments` int(11) NOT NULL,
   `status` tinytext COLLATE utf8_unicode_ci NOT NULL,
   `categoryid` int(11) NOT NULL,
+  `board_id` int(11) NOT NULL,
   PRIMARY KEY (`id`),
   KEY `id` (`id`)
 ) ENGINE=MyISAM  DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
@@ -117,4 +118,80 @@ CREATE TABLE IF NOT EXISTS `_sessions` (
   `token` tinytext COLLATE utf8_unicode_ci NOT NULL,
   PRIMARY KEY (`id`),
   KEY `id` (`id`)
+) ENGINE=MyISAM  DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
+
+
+-- Structure of table `tags`
+CREATE TABLE `tags`
+(
+    `id`   int(11)                          NOT NULL AUTO_INCREMENT,
+    `name` tinytext COLLATE utf8_unicode_ci NOT NULL,
+    PRIMARY KEY (`id`)
+)  ENGINE=MyISAM  DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
+
+-- tags of suggested ideas
+CREATE TABLE `idea_tags`
+(
+    `id`      int(11) NOT NULL AUTO_INCREMENT,
+    `tag_id`  int(11) NOT NULL,
+    `idea_id` int(11) NOT NULL,
+    PRIMARY KEY (`id`),
+    KEY (`tag_id`),
+    KEY (`idea_id`)
+)  ENGINE=MyISAM  DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
+
+-- attachments
+
+CREATE TABLE `attachments`
+(
+    `id`          INT AUTO_INCREMENT PRIMARY KEY,
+    `idea_id`     INT          NOT NULL,
+    `filename`    VARCHAR(255) NOT NULL,
+    `uploaded_at` DATETIME     NOT NULL,
+    key (`idea_id`),
+    PRIMARY KEY (`id`)
+)  ENGINE=MyISAM  DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
+
+
+-- rules and permission
+CREATE TABLE `rules`
+(
+    `id`   INT AUTO_INCREMENT PRIMARY KEY,
+    `name` VARCHAR(50) NOT NULL UNIQUE,
+    PRIMARY KEY (`id`)
+
+) ENGINE=MyISAM  DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
+
+CREATE TABLE `auth_item`
+(
+    `id`         INT AUTO_INCREMENT PRIMARY KEY,
+    `name`       VARCHAR(100) NOT NULL UNIQUE,
+    `controller` VARCHAR(100) NOT NULL,
+    `action`     VARCHAR(100) NOT NULL,
+    PRIMARY KEY (`id`)
+
+) ENGINE=MyISAM  DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
+
+CREATE TABLE `auth_assignment`
+(
+    `rule_id`      INT NOT NULL,
+    `auth_item_id` INT NOT NULL,
+    PRIMARY KEY (`rule_id`, `auth_item_id`)
+) ENGINE=MyISAM  DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
+
+CREATE TABLE `user_rules`
+(
+    `user_id` INT NOT NULL,
+    `rule_id` INT NOT NULL,
+    PRIMARY KEY (`user_id`, `rule_id`)
+) ENGINE=MyISAM  DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
+
+-- board
+
+CREATE TABLE boards
+(
+    id          INT AUTO_INCREMENT PRIMARY KEY,
+    name        VARCHAR(255) NOT NULL,
+    description TEXT         NULL,
+    PRIMARY KEY (`id`)
 ) ENGINE=MyISAM  DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
