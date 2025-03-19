@@ -41,7 +41,7 @@
       <label for="InputPassword2"><?php echo $lang['form_repeat_password']; ?></label>
       <input type="password" class="form-control" id="InputPassword2" placeholder="<?php echo $lang['form_repeat_password']; ?>" name="password2" required>
     </div>
-  <?php if ($recaptchapublic != ""): ?>
+  <?php if (false && $recaptchapublic != ""): ?>
     <script type="text/javascript">
 	 var RecaptchaOptions = {
 	    theme : 'clean'

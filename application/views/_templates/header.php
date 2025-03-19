@@ -16,6 +16,12 @@ See LICENSE.TXT for details.  -->
     <!-- Loading Bootstrap -->
     <link href="<?= base_url(); ?>public/bootstrap/css/bootstrap.css" rel="stylesheet">
     <link href="<?= base_url(); ?>public/bootstrap/css/prettify.css" rel="stylesheet">
+    <!-- jQuery (Load First) -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+
+    <!-- Select2 CSS & JS (Load After jQuery) -->
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.0.13/dist/css/select2.min.css" rel="stylesheet" />
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.0.13/dist/js/select2.min.js"></script>
 
     <!-- Loading Flat UI -->
     <link href="<?= base_url(); ?>public/css/flat-ui.css" rel="stylesheet">
@@ -24,52 +30,58 @@ See LICENSE.TXT for details.  -->
     <!-- Loading custom styles-->
     <link href="<?php echo base_url(); ?>public/css/all.css" rel="stylesheet">
 
-  <script type="text/javascript">
-  function showtable(tableid, tablelink){
-      document.getElementById('activitytable').style.display = 'none';
-      document.getElementById('ideastable').style.display = 'none';
-      document.getElementById('commentstable').style.display = 'none';
-      document.getElementById(tableid).style.display = '';
-      document.getElementById("table1").className = "";
-      document.getElementById("table2").className = "";
-      document.getElementById("table3").className = "";
-      document.getElementById(tablelink).className = "active";
-  }
-  function showtable4(tableid, tablelink){
-      document.getElementById('resetvotestable').style.display = 'none';
-      document.getElementById('changepasswordtable').style.display = 'none';
-      document.getElementById(tableid).style.display = '';
-      document.getElementById("table4").className = "";
-      document.getElementById("table5").className = "";
-      document.getElementById(tablelink).className = "active";
-  }
-  function popup_sure(text, url) {
-        if (confirm(text) == true) {
-           window.location = url;
+    <script type="text/javascript">
+
+        function showtable(tableid, tablelink){
+            document.getElementById('activitytable').style.display = 'none';
+            document.getElementById('ideastable').style.display = 'none';
+            document.getElementById('commentstable').style.display = 'none';
+            document.getElementById(tableid).style.display = '';
+            document.getElementById("table1").className = "";
+            document.getElementById("table2").className = "";
+            document.getElementById("table3").className = "";
+            document.getElementById(tablelink).className = "active";
         }
-  }
-  </script>
+        function showtable4(tableid, tablelink){
+            document.getElementById('resetvotestable').style.display = 'none';
+            document.getElementById('changepasswordtable').style.display = 'none';
+            document.getElementById(tableid).style.display = '';
+            document.getElementById("table4").className = "";
+            document.getElementById("table5").className = "";
+            document.getElementById(tablelink).className = "active";
+        }
+        function popup_sure(text, url) {
+            if (confirm(text) == true) {
+                window.location = url;
+            }
+        }
+    </script>
 </head>
 <body>
-  <div class="row header">
+<div class="row header">
     <div class="pull-left header--title-container">
-      <h4 id="header--title"><?= $title; ?></h4>
+        <h4 id="header--title"><?= $title; ?></h4>
     </div>
     <?php if(@isset($_SESSION['phpback_userid'])): ?>
-    <div class="pull-right" style="padding-top:15px;padding-right:40px;">
-      <small><span class="logged-as-label"><?= $lang['label_logged_as']; ?></span>
-          <span style='color:#999;margin-left:5px;'>
+        <div class="pull-right" style="padding-top:15px;padding-right:40px;">
+            <small><span class="logged-as-label"><?= $lang['label_logged_as']; ?></span>
+                <span style='color:#999;margin-left:5px;'>
             <a href="<?php echo base_url() . 'home/profile/' . $_SESSION['phpback_userid'].'/'.Display::slugify($_SESSION['phpback_username']); ?>"><?php echo $_SESSION['phpback_username']; ?></a>
           </span>
-      <a href="<?php echo base_url() . 'action/logout'; ?>"><button type="button" class="btn btn-danger btn-xs" style="margin-left:10px;"><?php echo $lang['label_log_out']; ?></button></a></small>
-    </div>
+                <a href="<?php echo base_url() . 'action/logout'; ?>"><button type="button" class="btn btn-danger btn-xs" style="margin-left:10px;"><?php echo $lang['label_log_out']; ?></button></a></small>
+        </div>
     <?php else : ?>
-    <div class="pull-right" style="padding-top:12px;padding-right:40px;">
-      <a href="<?php echo base_url() . 'home/login'; ?>"><button type="button" class="btn btn-success btn-sm btn-block" style="width:250px"><?php echo $lang['label_log_in']; ?></button></a>
-    </div>
+        <div class="pull-right" style="padding-top:12px;padding-right:40px;">
+            <a href="<?php echo base_url() . 'home/login'; ?>"><button type="button" class="btn btn-success btn-sm btn-block" style="width:250px"><?php echo $lang['label_log_in']; ?></button></a>
+        </div>
     <?php endif; ?>
 
-  </div>
-  
-  <div class="container">
-  <div class="row">
+</div>
+<?php if (isset($_SESSION['error_message'])): ?>
+    <div class="alert alert-danger">
+        <?= htmlspecialchars($_SESSION['error_message'], ENT_QUOTES, 'UTF-8'); ?>
+    </div>
+    <?php unset($_SESSION['error_message']); ?>
+<?php endif; ?>
+<div class="container">
+    <div class="row">

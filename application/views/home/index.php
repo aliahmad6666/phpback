@@ -1,96 +1,51 @@
-	<div class="col-md-9">
-	
-		<small>
-		<ol class="breadcrumb">
-		  <li class="active">Feedback</li>
-		</ol>
-		</small>
-		<div>
-			<h4 id="welcome-mesagge--title"><?= $welcomeTitle; ?></h4>
-			<div id="welcome-mesagge--text"><?= $welcomeDescription; ?></div>
-		</div>
-		
-		<br/>
-		
-		<div class="col-md-6">
-			<div class="ideas-completed">
-				<h6><?= $lang['last_completed_ideas']; ?></h6>
-				<small>
-				<table class="table table-hover">
-					<?php foreach ($ideas['completed'] as $idea): ?>
-						<tr>
-							<td>
-								<span class="label label-info completed-idea--tag" style="margin-right:5px">
-									<?= $lang['idea_completed']; ?>
-								</span>
-								<a href="<?= $idea->url; ?>">
-									<?= $idea->title; ?>
-								</a>
-							</td>
-						</tr>
-					<?php endforeach; ?>
-				</table>
-				</small>
-			</div>
-			<div class="ideas-planned">
-				<h6><?= $lang['last_planned_ideas']; ?></h6>
-				<small>
-				<table class="table table-hover">
-					<?php foreach ($ideas['planned'] as $idea): ?>
-						<tr>
-							<td>
-								<span class="label label-warning planned-idea--tag" style="margin-right:5px">
-									<?= $lang['idea_planned']; ?>
-								</span>
-								<a href="<?= $idea->url; ?>">
-									<?= $idea->title; ?>
-								</a>
-							</td>
-						</tr>
-					<?php endforeach; ?>
-				</table>
-				</small>
-			</div>
-		</div>
-		
-		<div class="col-md-6">
-			<div class="ideas-started">
-				<h6><?= $lang['last_started_ideas']; ?></h6>
-				<small>
-					<table class="table table-hover">
-						<?php foreach ($ideas['started'] as $idea): ?>
-							<tr>
-								<td>
-									<span class="label label-success started-idea--tag" style="margin-right:5px">
-										<?= $lang['idea_started']; ?>
-									</span>
-									<a href="<?= $idea->url; ?>">
-										<?= $idea->title; ?>
-									</a>
-								</td>
-							</tr>
-						<?php endforeach; ?>
-					</table>
-				</small>
-			</div>
-			<div class="ideas-considered">
-				<h6><?= $lang['last_considered_ideas']; ?></h6>
-				<small>
-				<table class="table table-hover">
-					<?php foreach ($ideas['considered'] as $idea): ?>
-						<tr>
-							<td>
-								<span class="label label-default considered-idea--tag" style="margin-right:5px">
-									<?= $lang['idea_considered']; ?>
-								</span>
-								<a href="<?= $idea->url; ?>">
-									<?= $idea->title; ?>
-								</a>
-							</td>
-						</tr>
-					<?php endforeach; ?>
-				</table>
-				</small>
-			</div>
-		</div>
-	</div>
+<div class="col-md-9">
+    <!-- Breadcrumb -->
+    <small>
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item active">Boards</li>
+        </ol>
+    </small>
+
+    <!-- Page Heading -->
+    <h3 class="fw-bold text-primary mb-3">Select a Board</h3>
+
+    <!-- Board Cards -->
+    <div class="row">
+        <?php foreach ($boards as $board): ?>
+            <div class="col-md-4 mb-4">
+                <a href="<?= base_url('home/board/' . $board->id) ?>" class="text-decoration-none" aria-label="Go to <?= htmlspecialchars($board->name); ?>">
+                    <div class="card board-card">
+                        <div class="card-body text-center">
+                            <h4 class="card-title text-primary fw-bold mb-3">
+                                <?= htmlspecialchars($board->name); ?>
+                            </h4>
+                            <p class="card-text text-muted">
+                                <?= !empty($board->description) ? htmlspecialchars(substr($board->description, 0, 50)) . '...' : 'No description available'; ?>
+                            </p>
+                        </div>
+                    </div>
+                </a>
+            </div>
+        <?php endforeach; ?>
+    </div>
+</div>
+
+<!-- Optional: Add custom CSS for hover effects -->
+<style>
+    .board-card {
+        border-radius: 8px;
+        overflow: hidden;
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+        background: #f8f9fa;
+        border: 1px solid #e9ecef;
+    }
+
+    .board-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+    }
+
+    .card-body {
+        padding: 20px;
+    }
+</style>

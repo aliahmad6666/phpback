@@ -64,7 +64,7 @@ $autoload['libraries'] = array('hashing', 'display');
 |	$autoload['helper'] = array('url', 'file');
 */
 
-$autoload['helper'] = array();
+$autoload['helper'] = array('auth');
 
 
 /*

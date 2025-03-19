@@ -10,6 +10,12 @@
 |
 */
 
+$hook['post_controller_constructor'][] = array(
+    'class'    => 'AuthMiddleware',
+    'function' => 'check_permission',
+    'filename' => 'AuthMiddleware.php',
+    'filepath' => 'hooks'
+);
 
 
 /* End of file hooks.php */

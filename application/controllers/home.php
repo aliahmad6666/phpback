@@ -6,46 +6,40 @@ Copyright (c) 2014 PHPBack
 http://www.phpback.org
 Released under the GNU General Public License WITHOUT ANY WARRANTY.
 See LICENSE.TXT for details.
-**********************************************************************/
+ **********************************************************************/
 
 if ( ! defined('BASEPATH')) exit('No direct script access allowed');
 
 class Home extends CI_Controller {
-	public function __construct() {
-		parent::__construct();
+    public function __construct() {
+        parent::__construct();
         session_start();
 
-		$this->load->helper('url');
-		$this->load->model('get');
-		$this->load->model('post');
+        $this->load->helper('url');
+        $this->load->model('get');
+        $this->load->model('post');
+        $this->load->model('User_rule_model');
 
-		$this->lang->load('default', $this->get->getSetting('language'));
+        $this->lang->load('default', $this->get->getSetting('language'));
 
         $this->verifyBanning();
-	}
-	public function index() {
+    }
+    public function index() {
         $this->autoLoginByCookie();
 
         //Use this function to parse $freename variables getDisplayHelpers();
         $data = $this->getDefaultData();
-        $data['welcomeTitle'] = $this->get->getSetting('welcometext-title');
-        $data['welcomeDescription'] = $this->get->getSetting('welcometext-description');
 
-        $data['ideas'] = array(
-            'completed' => $this->get->getIdeas('id', 1, 0, 10, array('completed')),
-            'started' => $this->get->getIdeas('id', 1, 0, 10, array('started')),
-            'planned' => $this->get->getIdeas('id', 1, 0, 10, array('planned')),
-            'considered' => $this->get->getIdeas('id', 1, 0, 10, array('considered')),
-        );
+        $data['boards'] = $this->get->getAllBoards();
 
-		$this->load->view('_templates/header', $data);
-		$this->load->view('home/index', $data);
-		$this->load->view('_templates/menu', $data);
-		$this->load->view('_templates/footer', $data);
+        $this->load->view('_templates/header', $data);
+        $this->load->view('home/index', $data);
+        $this->load->view('_templates/menu', $data);
+        $this->load->view('_templates/footer', $data);
 
-	}
+    }
 
-	public function category($id, $name = "", $order = "votes", $type = "desc", $page = '1') {
+    public function category($id, $name = "", $order = "votes", $type = "desc", $page = '1') {
         if (!$this->get->categoryExists($id)){
             header('Location: ' . base_url() . 'home');
             return;
@@ -63,26 +57,33 @@ class Home extends CI_Controller {
         $data['order'] = $order;
 
         $this->load->view('_templates/header', $data);
-		$this->load->view('home/category_ideas', $data);
-		$this->load->view('_templates/menu', $data);
-		$this->load->view('_templates/footer', $data);
+        $this->load->view('home/category_ideas', $data);
+        $this->load->view('_templates/menu', $data);
+        $this->load->view('_templates/footer', $data);
     }
 
     public function search() {
         $data = $this->getDefaultData();
 
         $query = $this->input->post('query');
-        $data['ideas'] = $this->get->getIdeasBySearchQuery($query);
+        $order = $this->input->get('order', 'trending');
+        $tag = $this->input->get('tag', '');
+
+        $data['ideas'] = $this->get->getIdeasBySearchQuery($query,$order,$tag);
 
         $this->load->view('_templates/header', $data);
-		$this->load->view('home/search_results', $data);
-		$this->load->view('_templates/menu', $data);
-		$this->load->view('_templates/footer', $data);
+        $this->load->view('home/search_results', $data);
+        $this->load->view('_templates/menu', $data);
+        $this->load->view('_templates/footer', $data);
     }
 
     public function idea($id) {
         $idea = $this->get->getIdea($id);
-
+        if (!has_permission($_SESSION['phpback_userid'],$this->uri->segment(1),$this->uri->segment(2))) {
+            $_SESSION['error_message'] = 'You do not have permission to access do this action.';
+            header('Location: ' . base_url() . 'home/');
+            exit;
+        }
         if ($idea === false) {
             header('Location: ' . base_url() . 'home');
             return;
@@ -97,14 +98,21 @@ class Home extends CI_Controller {
             $comment->user = $userName;
         }
 
+        $attachments = $this->get->getAttachmentsByIdea($id);
+
         $data = $this->getDefaultData();
+        $tags = $this->get->getTagsForIdea($idea->id);
+        $board = $this->get->getBoard($idea->board_id);
+        $data['selectedtags'] = $tags;
         $data['comments'] = $comments;
         $data['idea'] = $idea;
+        $data['board_name'] = $board?$board->name:'select board...';
+        $data['attachments'] = $attachments;
 
         $this->load->view('_templates/header', $data);
-		$this->load->view('home/view_idea', $data);
-		$this->load->view('_templates/menu', $data);
-		$this->load->view('_templates/footer', $data);
+        $this->load->view('home/view_idea', $data);
+        $this->load->view('_templates/menu', $data);
+        $this->load->view('_templates/footer', $data);
     }
 
 
@@ -129,9 +137,9 @@ class Home extends CI_Controller {
         }
 
         $this->load->view('_templates/header', $data);
-		$this->load->view('home/user', $data);
-		$this->load->view('_templates/menu', $data);
-		$this->load->view('_templates/footer', $data);
+        $this->load->view('home/user', $data);
+        $this->load->view('_templates/menu', $data);
+        $this->load->view('_templates/footer', $data);
     }
 
 
@@ -157,19 +165,19 @@ class Home extends CI_Controller {
         $data['ban'] = $ban;
 
         $this->load->view('_templates/header', $data);
-		$this->load->view('home/login', $data);
-		$this->load->view('_templates/menu', $data);
-		$this->load->view('_templates/footer', $data);
+        $this->load->view('home/login', $data);
+        $this->load->view('_templates/menu', $data);
+        $this->load->view('_templates/footer', $data);
     }
 
     public function postidea($error = "none") {
         $data = $this->getDefaultData();
         $data['error'] = $error;
         $data['POST'] = array(
-					'title' => $this->input->post('title'),
-					'catid' => $this->input->post('catid'),
-					'desc' => $this->input->post('desc')
-				);
+            'title' => $this->input->post('title'),
+            'catid' => $this->input->post('catid'),
+            'desc' => $this->input->post('desc')
+        );
 
         $this->load->view('_templates/header', $data);
         $this->load->view('home/post_idea', $data);
@@ -179,19 +187,21 @@ class Home extends CI_Controller {
 
     public function register($error = "NULL") {
         $data = $this->getDefaultData();
-        $data['recaptchapublic'] = $this->get->getSetting('recaptchapublic');
+        $data['recaptchapublic'] = '';//$this->get->getSetting('recaptchapublic');
         $data['error'] = $error;
 
         $this->load->view('_templates/header', $data);
-		$this->load->view('home/register', $data);
-		$this->load->view('_templates/menu', $data);
-		$this->load->view('_templates/footer', $data);
+        $this->load->view('home/register', $data);
+        $this->load->view('_templates/menu', $data);
+        $this->load->view('_templates/footer', $data);
     }
 
     private function getDefaultData() {
         return array(
             'title' => $this->get->getSetting('title'),
             'categories' => $this->get->getCategories(),
+            'tags' => $this->get->getTags(),
+            'boards' => $this->get->getBoards(),
             'lang' => $this->lang->language,
         );
     }
@@ -241,5 +251,25 @@ class Home extends CI_Controller {
                 exit;
             }
         }
+    }
+
+
+    public function board($board_id) {
+        $data = $this->getDefaultData();
+        $data['welcomeTitle'] = $this->get->getSetting('welcometext-title');
+        $data['welcomeDescription'] = $this->get->getSetting('welcometext-description');
+
+        $data['board'] = $this->get->getBoard($board_id);
+
+        $data['ideas'] = array(
+            'completed' => $this->get->getIdeas('id', 1, 0, 10, array('completed'),[],$board_id),
+            'started' => $this->get->getIdeas('id', 1, 0, 10, array('started'),[],$board_id),
+            'planned' => $this->get->getIdeas('id', 1, 0, 10, array('planned'),[],$board_id),
+            'considered' => $this->get->getIdeas('id', 1, 0, 10, array('considered'),[],$board_id),
+        );
+        $this->load->view('_templates/header', $data);
+        $this->load->view('home/board', $data);
+        $this->load->view('_templates/menu', $data);
+        $this->load->view('_templates/footer', $data);
     }
 }
